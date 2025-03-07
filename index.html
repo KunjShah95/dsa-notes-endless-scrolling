@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSA Notes - Endless Scrolling</title>
+    <style>
+        :root {
+            /* Light mode colors */
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --accent-color: #7209b7;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --text-secondary: #666666;
+            --border-color: #e0e0e0;
+            --code-bg: #f5f5f5;
+            --code-color: #333333;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --shadow-hover: rgba(0, 0, 0, 0.15);
+            --category-bg: #e9ecef;
+            --category-text: #4361ee;
+            --highlight: #4cc9f0;
+        }
+
+        [data-theme="dark"] {
+            --primary-color: #4cc9f0;
+            --secondary-color: #4361ee;
+            --accent-color: #7209b7;
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --border-color: #333333;
+            --code-bg: #2d2d2d;
+            --code-color: #f0f0f0;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            --shadow-hover: rgba(0, 0, 0, 0.4);
+            --category-bg: #333333;
+            --category-text: #4cc9f0;
+            --highlight: #7209b7;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color), var(--accent-color));
+            color: white;
+            padding: 1rem 2rem;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 20px var(--shadow-color);
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            background: linear-gradient(to right, #fff, rgba(255,255,255,0.7));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-right: 1rem;
+            position: relative;
+        }
+
+        .logo::after {
+            content: "";
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 30px;
+            height: 3px;
+            background-color: var(--highlight);
+            border-radius: 2px;
+        }
+
+        .search-container {
+            display: flex;
+            margin: 0 1rem;
+            flex-grow: 1;
+            max-width: 500px;
+            position: relative;
+        }
+
+        #search {
+            padding: 0.8rem 1rem 0.8rem 3rem;
+            border: none;
+            border-radius: 8px;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.15);
+            color: white;
+            font-size: 0.95rem;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+        }
+
+        #search::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        #search:focus {
+            outline: none;
+            background-color: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 0 0 2px var(--highlight);
+        }
+
+        .search-container::before {
+            content: "🔍";
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            align-items: center;
+        }
+
+        nav ul li {
+            margin-left: 1.5rem;
+        }
+
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 0;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        nav ul li a::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background-color: var(--highlight);
+            transition: width 0.3s ease;
+        }
+
+        nav ul li a:hover::after,
+        nav ul li a.active::after {
+            width: 100%;
+        }
+
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-left: 1.5rem;
+            border: none;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.05);
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 7rem auto 2rem;
+            padding: 0 2rem;
+        }
+
+        .categories {
+            display: flex;
+            overflow-x: auto;
+            padding: 0.5rem 0;
+            margin-bottom: 2rem;
+            gap: 0.8rem;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-color) transparent;
+        }
+
+        .categories::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .categories::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .categories::-webkit-scrollbar-thumb {
+            background-color: var(--primary-color);
+            border-radius: 6px;
+        }
+
+        .category-button {
+            background-color: var(--category-bg);
+            color: var(--category-text);
+            border: none;
+            border-radius: 20px;
+            padding: 0.65rem 1.2rem;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 8px var(--shadow-color);
+        }
+
+        .category-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+
+        .category-button.active {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        }
+
+        .notes-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 2rem;
+            padding-bottom: 3rem;
+        }
+
+        .note-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.75rem;
+            box-shadow: 0 8px 16px var(--shadow-color);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .note-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--primary-color), var(--accent-color));
+            opacity: 0.8;
+        }
+
+        .note-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px var(--shadow-hover);
+        }
+
+        .note-title {
+            color: var(--primary-color);
+            margin-bottom: 0.8rem;
+            font-size: 1.35rem;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            position: relative;
+            padding-bottom: 0.5rem;
+        }
+
+        .note-title::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 40px;
+            height: 2px;
+            background-color: var(--accent-color);
+            opacity: 0.7;
+        }
+
+        .note-content {
+            margin-bottom: 1.2rem;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .note-category {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.3rem 0.8rem;
+            background-color: var(--category-bg);
+            color: var(--category-text);
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        pre {
+            background-color: var(--code-bg);
+            color: var(--code-color);
+            padding: 1.2rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-top: 1.2rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            position: relative;
+            height: 60px;
+        }
+
+        .loading.visible {
+            opacity: 1;
+        }
+
+        .loading::after {
+            content: "";
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            top: 50%;
+            left: 50%;
+            margin-left: -20px;
+            margin-top: -20px;
+            border: 3px solid var(--border-color);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #back-to-top {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 3.5rem;
+            height: 3.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            font-size: 1.5rem;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            z-index: 100;
+        }
+
+        #back-to-top::before {
+            content: "↑";
+        }
+
+        #back-to-top.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #back-to-top:hover {
+            transform: translateY(-5px);
+            background-color: var(--accent-color);
+            box-shadow: 0 6px 16px var(--shadow-hover);
+        }
+
+        /* Animation for the cards */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .note-card {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        /* Animations for theme change */
+        .theme-transition {
+            animation: themeSwitch 0.5s ease;
+        }
+
+        @keyframes themeSwitch {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* Dark mode toggle icon states */
+        .theme-toggle .sun {
+            display: none;
+        }
+
+        .theme-toggle .moon {
+            display: block;
+        }
+
+        [data-theme="dark"] .theme-toggle .sun {
+            display: block;
+        }
+
+        [data-theme="dark"] .theme-toggle .moon {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-wrap: wrap;
+            }
+
+            .logo {
+                margin-bottom: 0.5rem;
+            }
+
+            .search-container {
+                order: 3;
+                margin: 0.8rem 0;
+                max-width: 100%;
+                width: 100%;
+            }
+
+            nav {
+                order: 2;
+                display: flex;
+                justify-content: space-between;
+                width: 100%;
+                align-items: center;
+            }
+
+            nav ul {
+                margin-top: 0;
+            }
+
+            nav ul li {
+                margin-left: 0;
+                margin-right: 1.2rem;
+            }
+
+            .notes-container {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            main {
+                margin-top: 9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .category-button {
+                padding: 0.5rem 1rem;
+                font-size: 0.8rem;
+            }
+
+            .note-card {
+                padding: 1.2rem;
+            }
+
+            .note-title {
+                font-size: 1.2rem;
+            }
+
+            pre {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">DSA Notes</div>
+            <div class="search-container">
+                <input type="text" id="search" placeholder="Search for notes...">
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="#" class="active">Home</a></li>
+                    <li><a href="#">Bookmarks</a></li>
+                    <li><a href="#">About</a></li>
+                </ul>
+                <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode">
+                    <span class="moon">🌙</span>
+                    <span class="sun">☀️</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="categories">
+            <button class="category-button active">All</button>
+            <button class="category-button">Arrays</button>
+            <button class="category-button">Linked Lists</button>
+            <button class="category-button">Stacks</button>
+            <button class="category-button">Queues</button>
+            <button class="category-button">Trees</button>
+            <button class="category-button">Graphs</button>
+            <button class="category-button">Sorting</button>
+            <button class="category-button">Searching</button>
+            <button class="category-button">Dynamic Programming</button>
+            <button class="category-button">Greedy Algorithms</button>
+            <button class="category-button">Hashing</button>
+        </div>
+
+        <div class="notes-container" id="notes-container">
+            <!-- Notes will be loaded here by JavaScript -->
+        </div>
+
+        <div class="loading" id="loading">
+            Loading more notes...
+        </div>
+    </main>
+
+    <button id="back-to-top" aria-label="Back to top"></button>
+
+    <script>
+        // Check for saved theme preference or use user's system preference
+        const prefersDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        // Safely get theme from localStorage with error handling
+        let savedTheme;
+        try {
+            savedTheme = localStorage.getItem('theme');
+        } catch (error) {
+            console.error('Error accessing localStorage:', error);
+            savedTheme = null;
+        }
+        
+        // Use saved theme or default based on system preference
+        savedTheme = savedTheme || (prefersDarkMode ? 'dark' : 'light');
+        
+        // Apply the theme
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        
+        // Sample DSA notes data
+        const dsaNotesData = [
+            {
+                id: 1,
+                title: "Binary Search",
+                category: "Searching",
+                content: "A divide and conquer algorithm that searches for an element in a sorted array by repeatedly dividing the search interval in half.",
+                pseudoCode: `function binarySearch(arr, target):
+    left = 0
+    right = arr.length - 1
+    
+    while left <= right:
+        mid = floor((left + right) / 2)
+        
+        if arr[mid] == target:
+            return mid
+        else if arr[mid] < target:
+            left = mid + 1
+        else:
+            right = mid - 1
+            
+    return -1 // Target not found`
+            },
+            {
+                id: 2,
+                title: "Quick Sort",
+                category: "Sorting",
+                content: "A divide and conquer algorithm that picks an element as a pivot and partitions the array around the pivot.",
+                pseudoCode: `function quickSort(arr, low, high):
+    if low < high:
+        // Partition the array and get pivot position
+        pivotIndex = partition(arr, low, high)
+        
+        // Sort elements before and after pivot
+        quickSort(arr, low, pivotIndex - 1)
+        quickSort(arr, pivotIndex + 1, high)
+        
+function partition(arr, low, high):
+    pivot = arr[high]
+    i = low - 1
+    
+    for j = low to high-1:
+        if arr[j] <= pivot:
+            i++
+            swap arr[i] and arr[j]
+            
+    swap arr[i+1] and arr[high]
+    return i+1`
+            },
+            {
+                id: 3,
+                title: "Breadth-First Search (BFS)",
+                category: "Graphs",
+                content: "A graph traversal algorithm that explores all the vertices of a graph at the present depth before moving on to vertices at the next depth level.",
+                pseudoCode: `function BFS(graph, startNode):
+    // Create a queue for BFS
+    queue = new Queue()
+    
+    // Mark the source node as visited and enqueue it
+    visited = set with startNode
+    queue.enqueue(startNode)
+    
+    while queue is not empty:
+        // Dequeue a vertex from queue and print
+        currentNode = queue.dequeue()
+        
+        // Get all adjacent vertices of the dequeued vertex
+        // If an adjacent vertex has not been visited, mark it
+        // visited and enqueue it
+        for each neighbor of graph[currentNode]:
+            if neighbor not in visited:
+                visited.add(neighbor)
+                queue.enqueue(neighbor)`
+            },
+            {
+                id: 4,
+                title: "Linked List Implementation",
+                category: "Linked Lists",
+                content: "A linear data structure where elements are stored in nodes, and each node points to the next node in the sequence.",
+                pseudoCode: `class Node:
+    constructor(data):
+        this.data = data
+        this.next = null
+        
+class LinkedList:
+    constructor():
+        this.head = null
+        
+    // Add node at the end
+    append(data):
+        newNode = new Node(data)
+        
+        if head is null:
+            head = newNode
+            return
+            
+        current = head
+        while current.next is not null:
+            current = current.next
+            
+        current.next = newNode`
+            },
+            {
+                id: 5,
+                title: "Merge Sort",
+                category: "Sorting",
+                content: "A divide and conquer algorithm that divides the input array into two halves, recursively sorts them, and then merges the sorted halves.",
+                pseudoCode: `function mergeSort(arr):
+    if arr.length <= 1:
+        return arr
+        
+    mid = floor(arr.length / 2)
+    left = arr[0...mid-1]
+    right = arr[mid...arr.length-1]
+    
+    // Recursive calls
+    mergeSort(left)
+    mergeSort(right)
+    
+    merge(arr, left, right)
+    
+function merge(arr, left, right):
+    i = j = k = 0
+    
+    while i < left.length and j < right.length:
+        if left[i] <= right[j]:
+            arr[k] = left[i]
+            i++
+        else:
+            arr[k] = right[j]
+            j++
+        k++
+        
+    // Copy remaining elements
+    while i < left.length:
+        arr[k] = left[i]
+        i++
+        k++
+        
+    while j < right.length:
+        arr[k] = right[j]
+        j++
+        k++`
+            },
+            {
+                id: 6,
+                title: "Binary Tree Traversal",
+                category: "Trees",
+                content: "Methods for visiting all nodes in a binary tree. The three common traversals are inorder, preorder, and postorder.",
+                pseudoCode: `// Inorder Traversal (Left, Root, Right)
+function inorderTraversal(root):
+    if root is null:
+        return
+        
+    inorderTraversal(root.left)
+    print(root.data)
+    inorderTraversal(root.right)
+    
+// Preorder Traversal (Root, Left, Right)
+function preorderTraversal(root):
+    if root is null:
+        return
+        
+    print(root.data)
+    preorderTraversal(root.left)
+    preorderTraversal(root.right)
+    
+// Postorder Traversal (Left, Right, Root)
+function postorderTraversal(root):
+    if root is null:
+        return
+        
+    postorderTraversal(root.left)
+    postorderTraversal(root.right)
+    print(root.data)`
+            },
+            {
+                id: 7,
+                title: "Heap Data Structure",
+                category: "Trees",
+                content: "A specialized tree-based data structure that satisfies the heap property. In a max heap, the key at the root is greater than or equal to the keys of its children.",
+                pseudoCode: `// Heapify procedure for a max heap
+function heapify(arr, n, i):
+    largest = i
+    left = 2 * i + 1
+    right = 2 * i + 2
+    
+    if left < n and arr[left] > arr[largest]:
+        largest = left
+        
+    if right < n and arr[right] > arr[largest]:
+        largest = right
+        
+    if largest != i:
+        swap arr[i] and arr[largest]
+        heapify(arr, n, largest)
+        
+// Function to build a max heap
+function buildMaxHeap(arr):
+    n = arr.length
+    
+    // Start from the last non-leaf node and heapify all nodes in reverse order
+    for i = floor(n / 2) - 1 down to 0:
+        heapify(arr, n, i)`
+            },
+            {
+                id: 8,
+                title: "Dijkstra's Algorithm",
+                category: "Graphs",
+                content: "An algorithm for finding the shortest paths between nodes in a weighted graph. It uses a priority queue to greedily select the closest vertex.",
+                pseudoCode: `function dijkstra(graph, startNode):
+    // Create a priority queue
+    priorityQueue = new PriorityQueue()
+    
+    // Distance from source to all other nodes starts with infinity
+    distances = {}
+    for each vertex v in graph:
+        distances[v] = Infinity
+    
+    // Distance to the source is 0
+    distances[startNode] = 0
+    priorityQueue.add(startNode, 0)
+    
+    while priorityQueue is not empty:
+        current = priorityQueue.extractMin()
+        
+        for each neighbor of current:
+            distance = distances[current] + weight(current, neighbor)
+            
+            if distance < distances[neighbor]:
+                distances[neighbor] = distance
+                priorityQueue.add(neighbor, distance)
+                
+    return distances`
+            },
+            {
+                id: 9,
+                title: "Dynamic Programming - Fibonacci",
+                category: "Dynamic Programming",
+                content: "Dynamic Programming approach to calculate Fibonacci numbers efficiently by storing previously calculated values.",
+                pseudoCode: `// Top-down approach with memoization
+function fibonacci(n, memo = {}):
+    if n in memo:
+        return memo[n]
+        
+    if n <= 1:
+        return n
+        
+    memo[n] = fibonacci(n-1, memo) + fibonacci(n-2, memo)
+    return memo[n]
+    
+// Bottom-up approach
+function fibonacciDP(n):
+    if n <= 1:
+        return n
+        
+    dp = new array of size (n+1)
+    dp[0] = 0
+    dp[1] = 1
+    
+    for i = 2 to n:
+        dp[i] = dp[i-1] + dp[i-2]
+        
+    return dp[n]`
+            },
+            {
+                id: 10,
+                title: "Stack Implementation",
+                category: "Stacks",
+                content: "A stack is a linear data structure that follows the Last In First Out (LIFO) principle. Elements can only be added or removed from the top.",
+                pseudoCode: `class Stack:
+    constructor():
+        this.items = []
+        
+    // Add element to top of stack
+    push(element):
+        this.items.push(element)
+        
+    // Remove and return top element
+    pop():
+        if this.isEmpty():
+            return "Underflow"
+        return this.items.pop()
+        
+    // Return top element without removing
+    peek():
+        if this.isEmpty():
+            return "Stack is empty"
+        return this.items[this.items.length - 1]
+        
+    // Check if stack is empty
+    isEmpty():
+        return this.items.length == 0`
+            },
+            {
+                id: 11,
+                title: "Queue Implementation",
+                category: "Queues",
+                content: "A queue is a linear data structure that follows the First In First Out (FIFO) principle. Elements are added at the rear and removed from the front.",
+                pseudoCode: `class Queue:
+    constructor():
+        this.items = []
+        
+    // Add element to end of queue
+    enqueue(element):
+        this.items.push(element)
+        
+    // Remove and return front element
+    dequeue():
+        if this.isEmpty():
+            return "Underflow"
+        return this.items.shift()
+        
+    // Return front element without removing
+    front():
+        if this.isEmpty():
+            return "Queue is empty"
+        return this.items[0]
+        
+    // Check if queue is empty
+    isEmpty():
+        return this.items.length == 0`
+            },
+            {
+                id: 12,
+                title: "Hash Table Implementation",
+                category: "Hashing",
+                content: "A hash table is a data structure that implements an associative array abstract data type, a structure that can map keys to values.",
+                pseudoCode: `class HashTable:
+    constructor(size = 127):
+        this.size = size
+        this.table = new Array(size)
+        
+    // Hash function to get index
+    hash(key):
+        let hash = 0
+        for i = 0 to key.length - 1:
+            hash += key.charCodeAt(i)
+        return hash % this.size
+        
+    // Insert a key-value pair
+    set(key, value):
+        const index = this.hash(key)
+        
+        if this.table[index] is undefined:
+            this.table[index] = []
+            
+        // Check if key already exists to update
+        for i = 0 to this.table[index].length - 1:
+            if this.table[index][i][0] === key:
+                this.table[index][i][1] = value
+                return
+                
+        // If key doesn't exist, add a new entry
+        this.table[index].push([key, value])
+        
+    // Get value by key
+    get(key):
+        const index = this.hash(key)
+        
+        if this.table[index] is undefined:
+            return undefined
+            
+        for i = 0 to this.table[index].length - 1:
+            if this.table[index][i][0] === key:
+                return this.table[index][i][1]
+                
+        return undefined`
+            }
+        ];
+
+        // Function to generate more sample data
+        function generateMoreNotes(startId, count) {
+            const categories = ['Arrays', 'Linked Lists', 'Stacks', 'Queues', 'Trees', 'Graphs', 'Sorting', 'Searching', 'Dynamic Programming', 'Greedy Algorithms', 'Hashing'];
+            const newNotes = [];
+            
+            for (let i = 0; i < count; i++) {
+                const id = startId + i;
+                const categoryIndex = Math.floor(Math.random() * categories.length);
+                
+                newNotes.push({
+                    id: id,
+                    title: `Algorithm ${id}`,
+                    category: categories[categoryIndex],
+                    content: `This is a sample content for algorithm ${id}. It provides a brief overview of the algorithm and its applications.`,
+                    pseudoCode: `function algorithm${id}(input):
+    // Initialize some variables
+    result = []
+    
+    // Process the input
+    for each element in input:
+        result.push(process(element))
+        
+    // Return the result
+    return result`
+                });
+            }
+            
+            return newNotes;
+        }
+
+        // Variables for infinite scrolling
+        let currentPage = 1;
+        let isLoading = false;
+        let hasMoreData = true;
+        const notesPerPage = 6;
+        let displayedNotes = [...dsaNotesData]; // Start with initial data
+        let filteredNotes = displayedNotes;
+        let activeCategory = 'All';
+
+        // DOM Elements
+        const notesContainer = document.getElementById('notes-container');
+        const loadingElement = document.getElementById('loading');
+        const searchInput = document.getElementById('search');
+        const backToTopButton = document.getElementById('back-to-top');
+        const categoryButtons = document.querySelectorAll('.category-button');
+
+        // Function to create a note card
+        function createNoteCard(note) {
+            const noteCard = document.createElement('div');
+            noteCard.classList.add('note-card');
+            
+            noteCard.innerHTML = `
+                <h3 class="note-title">${note.title}</h3>
+                <div class="note-content">${note.content}</div>
+                <span class="note-category">${note.category}</span>
+                <pre>${note.pseudoCode}</pre>
+            `;
+            
+            return noteCard;
+        }
+
+        // Function to render notes
+        function renderNotes() {
+            filteredNotes.forEach(note => {
+                notesContainer.appendChild(createNoteCard(note));
+            });
+        }
+
+        // Function to load more notes
+        function loadMoreNotes() {
+            if (isLoading || !hasMoreData) return;
+            
+            isLoading = true;
+            loadingElement.classList.add('visible');
+            
+            // Simulate API call delay
+            setTimeout(() => {
+                const nextNotes = generateMoreNotes(displayedNotes.length + 1, notesPerPage);
+                displayedNotes = [...displayedNotes, ...nextNotes];
+                
+                // Filter by category and search
+                const newFilteredNotes = filterNotes(nextNotes);
+                
+                // Append new notes
+                newFilteredNotes.forEach(note => {
+                    notesContainer.appendChild(createNoteCard(note));
+                });
+                
+                // Check if we should stop loading more
+                if (nextNotes.length < notesPerPage) {
+                    hasMoreData = false;
+                }
+                
+                isLoading = false;
+                loadingElement.classList.remove('visible');
+                currentPage++;
+            }, 1000);
+        }
+
+        // Function to filter notes by category and search term
+        function filterNotes(notes) {
+            return notes.filter(note => {
+                const matchesCategory = activeCategory === 'All' || note.category === activeCategory;
+                const searchTerm = searchInput.value.toLowerCase();
+                const matchesSearch = note.title.toLowerCase().includes(searchTerm) || 
+                                     note.content.toLowerCase().includes(searchTerm) ||
+                                     note.pseudoCode.toLowerCase().includes(searchTerm);
+                                     
+                return matchesCategory && matchesSearch;
+            });
+        }
+
+        // Function to filter all displayed notes
+        function filterAllNotes() {
+            const searchTerm = searchInput.value.toLowerCase();
+            filteredNotes = displayedNotes.filter(note => {
+                const matchesCategory = activeCategory === 'All' || note.category === activeCategory;
+                const matchesSearch = note.title.toLowerCase().includes(searchTerm) || 
+                                     note.content.toLowerCase().includes(searchTerm) ||
+                                     note.pseudoCode.toLowerCase().includes(searchTerm);
+                                     
+                return matchesCategory && matchesSearch;
+            });
+            
+            // Clear container and render filtered notes
+            notesContainer.innerHTML = '';
+            renderNotes();
+        }
+
+        // Initialize: Render initial notes
+        renderNotes();
+
+        // Event Listeners
+        // Infinite scroll
+        window.addEventListener('scroll', () => {
+            const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+            
+            // Show/hide back to top button
+            if (scrollTop > 500) {
+                backToTopButton.classList.add('visible');
+            } else {
+                backToTopButton.classList.remove('visible');
+            }
+            
+            // Load more when near bottom
+            if (scrollTop + clientHeight >= scrollHeight - 100 && !isLoading && hasMoreData) {
+                loadMoreNotes();
+            }
+        });
+
+        // Search functionality
+        searchInput.addEventListener('input', filterAllNotes);
+
+        // Category buttons
+        categoryButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove active class from all buttons
+                categoryButtons.forEach(btn => btn.classList.remove('active'));
+                
+                // Add active class to clicked button
+                button.classList.add('active');
+                
+                // Update active category
+                activeCategory = button.textContent;
+                
+                // Filter notes
+                filterAllNotes();
+                
+                // Reset scroll position
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+
+        // Back to top button
+        backToTopButton.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('theme-toggle');
+        
+        themeToggle.addEventListener('click', () => {
+            // Store theme preference with error handling
+            try {
+                localStorage.setItem('theme', newTheme);
+            } catch (error) {
+                console.error('Error storing theme preference:', error);
+                // Continue execution even if localStorage fails
+            }
+            // Switch theme
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            
+            // Add transition class
+            document.body.classList.add('theme-transition');
+            
+            // Set theme
+            document.documentElement.setAttribute('data-theme', newTheme);
+            
+            // Store theme preference
+            localStorage.setItem('theme', newTheme);
+            
+            // Remove transition class after animation completes
+            setTimeout(() => {
+                document.body.classList.remove('theme-transition');
+            }, 500);
+        });
+        
+        // Apply card animations with staggered delay
+        function animateCards() {
+            const cards = document.querySelectorAll('.note-card');
+            cards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.style.animation = 'fadeIn 0.5s ease-out forwards';
+                }, index * 100);
+            });
+        }
+        
+        // Run animation on initial load
+        window.addEventListener('DOMContentLoaded', animateCards);
+        
+        // Run animation when filtering
+        const originalFilterAllNotes = filterAllNotes;
+        window.filterAllNotes = function() {
+            originalFilterAllNotes();
+            animateCards();
+        };
+    </script>
+</body>
+</html>
